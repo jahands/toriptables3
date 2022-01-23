@@ -4,7 +4,7 @@
 """
 Tor Iptables script is an anonymizer
 that sets up iptables and tor to route all services
-and traffic including DNS through the tor network.
+and traffic (excluding DNS) through the tor network.
 """
 
 
@@ -23,7 +23,6 @@ from time import sleep
 class TorIptables:
 
   def __init__(self):
-    self.local_dnsport = "53"  # DNSPort
     self.virtual_net = "10.0.0.0/10"  # VirtualAddrNetwork
     self.local_loopback = "127.0.0.1" # Local loopback
     self.non_tor_net = ["192.168.0.0/16", "172.16.0.0/12"]
@@ -37,9 +36,8 @@ class TorIptables:
 VirtualAddrNetwork %s
 AutomapHostsOnResolve 1
 TransPort %s
-DNSPort %s
 ''' % (basename(__file__), self.trans_port, self.virtual_net,
-       self.trans_port, self.local_dnsport)
+       self.trans_port)
 
   def flush_iptables_rules(self):
     call(["iptables", "-F"])
@@ -75,8 +73,6 @@ DNSPort %s
 
     call(["iptables", "-t", "nat", "-A", "OUTPUT", "-m", "owner", "--uid-owner",
           "%s" % self.tor_uid, "-j", "RETURN"])
-    call(["iptables", "-t", "nat", "-A", "OUTPUT", "-p", "udp", "--dport",
-          self.local_dnsport, "-j", "REDIRECT", "--to-ports", self.local_dnsport])
 
     for net in self.non_tor:
       call(["iptables", "-t", "nat", "-A", "OUTPUT", "-d", "%s" % net, "-j",
